@@ -1,0 +1,220 @@
+
+---
+title:    "Ejercicio práctico Análisis Factorial"
+license:  by-nc-sa
+urlcolor: blue
+output:
+  pdf_document:   default
+  html_document: 
+    theme:        cosmo 
+    highlight:    tango 
+    toc:          true
+    toc_float:    true
+    code_folding: show
+  epuRate::epurate:
+    toc:             TRUE
+    number_sections: FALSE
+    code_folding:    "show"
+  word_document:  default
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+# 1. Planteamiento del problema
+
+Para este ejercicio nos enfocaremos en un set de datos que representa la calidad de distintos tipos de vino tinto portugués. Dicha calidad se determina en función de distintos atributos que caracterizan cada tipo de vino. Mediante el Análisis Factorial, exploraremos la posibilidad de clasificarlos en base a distintas caracter??sticas del propio vino, tales como el porcentaje de alcohol o su densidad.
+
+El subconjunto de variables del dataset original que utilizaremos son las siguientes:
+
+* **residual.sugar**: la cantidad de azúcar que queda después de la fermentación, es raro encontrar vinos con menos de 1 gramo/litro y los vinos con más de 45 gramos/litro se consideran dulces.
+* **density**: la densidad del vino se aproxima a la del agua en función del porcentaje de alcohol y del contenido de azúcar.
+* **pH**: describe el grado de acidez o base de un vino en una escala de 0 (muy ácido) a 14 (muy básico); la mayor??a de los vinos se sitúan entre 3 y 4 en la escala de pH.
+* **alcohol**: el porcentaje de alcohol que contiene el vino.
+* **citric.acid**: encontrado en pequeñas cantidades, el ácido c??trico puede añadir frescura y sabor a los vinos.
+* **volatile.acidity**: la cantidad de ácido acético en el vino, que en niveles demasiado altos puede producir un sabor desagradable a vinagre.
+
+Podr?s encontrar el dataset en el apartado de 'Material Complementario', carpeta Data con el nombre: 4.2_PCA_AF_ejercicio.csv. As? pues, lo primero que haremos ser? cargar el dataset en R.
+
+As?? pues, lo primero que haremos es cargar el dataset en R:
+
+```{r,warning=FALSE,message=FALSE}
+# Carga del dataset
+df <- read.csv('/home/jorge/Desktop/modulo4/Datos-20220401/Data/4.2_PCA_datalimpia.csv')
+df
+```
+
+## 1.1 Preparación del dataset.
+
+Tal y como podrás comprobar, el dataset contiene variables que no necesitamos para el ejercicio, por lo que hay que seleccionar únicamente las definidas en el apartado anterior.
+
+* **Ejercicio 1**: Selecciona las variables a utilizar definidas en el apartado anterior del dataset original.
+
+```{r,warning=FALSE,message=FALSE}
+# Indexo variables necesarias para el ejercicio
+# Importe la data, la limpie en jupyter con pandas.
+```
+
+## 1.2 Análisis Factorial.
+
+Una vez dispongas del dataset preparado, realiza el Análisis Factorial para 2 factores utilizando la función factanal.
+
+```{r}
+# Cálculo del Análisis de Factores
+wine.fa <- factanal(df, factors = 2)
+print(wine.fa)
+```
+
+* **Ejercicio 2**: Podr??as indicar qué variables no están bien representadas por los factores? Justifica tu respuesta
+
+```{r}
+print('Las variables con una alta singularidad indica que los factores residual.sugar, pH, alcohol y volatile.acidity no representan bien su varianza.')
+```
+
+* **Ejercicio 3**: Imprime la singularidad de cada variable. 
+
+```{r}
+# Singularidad de cada variable
+wine.fa$uniquenesses
+```
+
+* **Ejercicio 4**: ¿Qué variables están contribuyendo más a cada uno de los factores? Justifica tu respuesta.
+
+```{r}
+print(wine.fa$loadings, cutoff = 0)
+
+```
+## Justificación Respuesta 
+
+En el presente ouput$Loadings, podemos encontrar la contribución de cada variable a cada uno de los factores. el rango que tomam es de -1 a 1, lo que nos permite encontrar a las variables con valores elevados, las cales están bien explicadas por los factores. 
+Factor1: citric.acid, density, alcohol, residual.sugar 
+Factor2: density, residual.sugar, citric.acid, volatile.acidity
+
+
+* **Ejercicio 5**: ¿Qué proporción de la varianza está explicada por cada factor? Siguiendo la regla de Kaiser, mantendr??as los dos factores?
+
+```{r}
+print("La proporción acumulada del Factor1 es 0.279 y del Factor2 es 0.524.
+Sí, ya que según la regla de Kaiser. Suele merecer la pena mantener un factor si el valor es mayor a 1.")
+
+```
+
+## 1.3 Matriz de Residuos.
+
+* **Ejercicio 6**: Imprime la matriz de residuos e interpreta los resultados.¿Qué variables están mejor representadas en los factores según los valores de la matriz?
+
+```{r}
+# Matriz de cargas
+Lambda <- wine.fa$loadings
+
+# Matriz de singularidades
+Psi <- diag(wine.fa$uniquenesses)
+
+# Matriz de correlaciones observada
+S <- wine.fa$correlation
+
+# Creación de la matriz de correlaciones ajustadas
+Sigma <- Lambda %*% t(Lambda) + Psi
+
+# Creación de la matriz de residuos
+round(S - Sigma, 6)
+
+```
+
+## 1.4 Interpretación de los factores.
+
+En volatile.acidity el factor  mejor representado es residual.sugar
+En citric.acid los factores  mejor representados son alcohol y density
+En residual.sugar el factor mejor representado es citric.acid
+En density el factor  mejor representado es residual.sugar
+En pH el factor  mejor representado es density
+En alcoholel factor mejor representado es citric.acid
+
+* **Ejercicio 7**: Ajusta tres modelos factoriales, uno sin rotación, uno con rotación varimax y uno con rotación promax, y haz una gráfica de dispersión del factor 1 y el 2 para cada uno de ellos. Representa el valor de cada punto con el nombre de la variable.
+
+```{r}
+# Creación de 3 modelos distintos modificando la rotación
+wine.fa.none <- factanal(df, factors = 2, rotation = "none")
+wine.fa.varimax <- factanal(df, factors = 2, rotation = "varimax")
+wine.fa.promax <- factanal(df, factors = 2, rotation = "promax")
+
+# Definición del output gráfico (3 gráficos en 1 fila)
+par(mfrow = c(1,3))
+
+# Primer gráfico: sin rotación
+plot(wine.fa.none$loadings[,1],
+     wine.fa.none$loadings[,2],
+     xlab = "Factor 1",
+     ylab = "Factor 2",
+     ylim = c(-1,1),
+     xlim = c(-1,1),
+     main = "No rotation")
+# Texto de color rojo para el gráfico primero
+text(wine.fa.none$loadings[,1]-0.08,
+     wine.fa.none$loadings[,2]+0.08,
+     colnames(df),
+     col="red")
+abline(h = 0, v = 0)
+
+# Segundo gráfico: rotacion = varimax
+plot(wine.fa.varimax$loadings[,1],
+     wine.fa.varimax$loadings[,2],
+     xlab = "Factor 1",
+     ylab = "Factor 2",
+     ylim = c(-1,1),
+     xlim = c(-1,1),
+     main = "Varimax Rotation")
+# Texto de color azul para el gráfico segundo
+text(wine.fa.varimax$loadings[,1]-0.08,
+     wine.fa.varimax$loadings[,2]+0.08,
+     colnames(df),
+     col="blue")
+abline(h = 0, v = 0)
+
+# Tercer gráfico: rotacion = promax
+plot(wine.fa.promax$loadings[,1],
+     wine.fa.promax$loadings[,2],
+     xlab = "Factor 1",
+     ylab = "Factor 2",
+     ylim = c(-1,1),
+     xlim = c(-1,1),
+     main = "Promax rotation")
+# Texto de color negro para el gráfico tercero
+text(wine.fa.promax$loadings[,1]-0.08,
+     wine.fa.promax$loadings[,2]+0.08,
+     colnames(df),
+     col="black")
+abline(h = 0, v = 0)
+```
+
+* **Ejercicio 8**: Interpreta los resultados. Podr??as indicar qué caracter??sticas representan mejor al factor 1 y al factor 2 y como se podr??a interpretar en función del significado que contienen? Si tuvieras que darle un nombre comercial a cada uno de los dos factores, que nombres les otorgar??as?
+
+```{r}
+print('(Vinos acidos) el primer factor explica aquellas carácteristicas de los vinos con un alto grado de acidez o base de vino y un bajo porcentaje de alcohol (pH&alcohol)
+
+(Vinos dulces) el segundo factor explica carácteristicas de los vinos como la cantidad de azúcar que queda despueś de la fermentación, la cantidad de ácido acético en el vino, el ácido cítrico añadido para mejorar la frescura y sabor a los  vinos y la densidad la cual el vino se aproxima al agua en función al porcentaje de alcohol y azúcar. Es decir, es un vino suave con un toque de acidez, pero un poco dulce y denso.(volatile.acidity& residual.sugar& density& citric.acid)')
+```
+
+## 1.4 Puntuación del del ejercicio
+
+Este ejercicio se puntuará con 10 puntos, siendo el m??nimo necesario para superar la prueba de 5 puntos.
+
+La puntuación es la siguiente:
+
+* Ejercicio 1: 0.5 punto
+
+* Ejercicio 2: 0.75 puntos
+
+* Ejercicio 3: 0.75 puntos
+
+* Ejercicio 4: 1.5 puntos
+
+* Ejercicio 5: 1 puntos
+
+* Ejercicio 6: 1 punto
+
+* Ejercicio 7: 1.5 puntos
+
+* Ejercicio 8: 3 puntos
